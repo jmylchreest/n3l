@@ -10,7 +10,7 @@ import (
 
 func main() {
 	router := mux.NewRouter()
-	router.HandleFunc("/fetch/{host}/{repo}/{group}/{artifact}/{version}", controllers.Fetch).Methods("GET")
+	router.HandleFunc("/fetch/{host}/{repo}/{group}/{artifact}/{version}/{extension}", controllers.Fetch).Methods("GET")
 	n := negroni.New(negroni.NewLogger())
 	n.UseHandler(router)
 

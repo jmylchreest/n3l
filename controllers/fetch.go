@@ -36,6 +36,7 @@ func Fetch(w http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 	group := strings.Replace(vars["group"], ".", "/", -1)
 	version := vars["version"]
+	ext := vars["extension"]
 
 	if "latest" == strings.ToLower(version) {
 		// Latest version so we first need to pull the main maven-metadata.xml
@@ -78,7 +79,7 @@ func Fetch(w http.ResponseWriter, req *http.Request) {
 	log.Print("[resolver] matched version:", value)
 
 	// Now fetch the war file, we presume value matches all versions, probably incorrect but right for us
-	object = version + "/" + vars["artifact"] + "-" + value + ".war"
+	object = version + "/" + vars["artifact"] + "-" + value + "." + ext
 
 	url = "http://" + vars["host"] + "/" + "repository/" + vars["repo"] + "/" + group + "/" + vars["artifact"] + "/" + object
 	resp, _ = fetchobject(url)
