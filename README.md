@@ -15,8 +15,8 @@ Usage is as follows:
 
 where:
 
-{host} is the hostname of your nexus 3.0 server
-{repo} is the repository name
-{group} is the maven group attribute
-{artifact} is the maven artifact name
-{version} is either a literal version string, or "latest"
+* `{host}` is the hostname of your nexus 3.0 server
+* `{repo}` is the repository name
+* `{group}` is the maven group attribute
+* `{artifact}` is the maven artifact name
+* `{version}` is either a literal version string, or "latest"
