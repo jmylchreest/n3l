@@ -1,2 +1,4 @@
 .tags*
 bin
+gin-bin*
+debug*

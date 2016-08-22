@@ -32,13 +32,19 @@ func fetchobject(url string) (resp *http.Response, err error) {
 
 func Fetch(w http.ResponseWriter, req *http.Request) {
 	var object string
+	var extension string
+	var classifier string
+	var suffix string
+	var xpath string
 
 	vars := mux.Vars(req)
 	group := strings.Replace(vars["group"], ".", "/", -1)
 	version := vars["version"]
-	ext := vars["extension"]
 
-	if "latest" == strings.ToLower(version) {
+	// http://maven.apache.org/ref/3.0/maven-repository-metadata/repository-metadata.html
+
+	// Parse the top-level maven-manifest.xml
+	if strings.ToLower(version) == "latest" || strings.ToLower(version) == "release" {
 		// Latest version so we first need to pull the main maven-metadata.xml
 		object = "maven-metadata.xml"
 		url := "http://" + vars["host"] + "/" + "repository/" + vars["repo"] + "/" + group + "/" + vars["artifact"] + "/" + object
@@ -47,7 +53,8 @@ func Fetch(w http.ResponseWriter, req *http.Request) {
 		defer resp.Body.Close()
 		body, _ := ioutil.ReadAll(resp.Body)
 
-		path := xmlpath.MustCompile("/metadata/versioning/latest")
+		xpath = "/metadata/versioning/" + strings.ToLower(version)
+		path := xmlpath.MustCompile(xpath)
 		x := bytes.NewReader(body)
 		root, err := xmlpath.Parse(x)
 		if err != nil {
@@ -68,19 +75,55 @@ func Fetch(w http.ResponseWriter, req *http.Request) {
 	defer resp.Body.Close()
 	body, _ := ioutil.ReadAll(resp.Body)
 
-	path := xmlpath.MustCompile("/metadata/versioning/snapshotVersions/snapshotVersion/value")
+	// And now lets build up the correct object to refer to
+	xpath = "/metadata/versioning/snapshotVersions/snapshotVersion"
+	var xpathadd = ""
+
+	// Did we pass in the extension?
+	if val, ok := vars["extension"]; ok {
+		extension = val
+		xpathadd = "extension=\"" + val + "\""
+	} else {
+		extension = "war"
+	}
+
+	// Did we pass in the classifier?
+
+	if val, ok := vars["classifier"]; ok {
+		classifier = "-" + val
+		xpathadd = xpathadd + " and classifier=\"" + val + "\""
+		// xmlpath.v2 is broken, it doesnt support multiple predicates despite claiming
+		// it does, https://github.com/go-xmlpath/xmlpath/issues/24. So we just
+		// match on classifier if it exists.
+		xpathadd = "classifier=\"" + val + "\""
+	} else {
+		classifier = ""
+	}
+
+	// setup the fetch suffix
+	suffix = classifier + "." + extension
+	if len(xpathadd) > 0 {
+		xpathadd = "[" + xpathadd + "]"
+	}
+
+	xpath = xpath + xpathadd + "/value"
+	// xpath = "//snapshotVersion" + xpathadd + "/value"
+
+	// And now parse that using xpath
+	log.Printf("[resolver] searching using xpath %s", xpath)
+
+	// Read the response body into an xml object
 	x := bytes.NewReader(body)
 	root, err := xmlpath.Parse(x)
 	if err != nil {
 		log.Fatal(err)
 	}
-
+	path := xmlpath.MustCompile(xpath)
 	value, _ := path.String(root)
-	log.Print("[resolver] matched version:", value)
+	log.Printf("[resolver] matched: %s%s", value, suffix)
 
-	// Now fetch the war file, we presume value matches all versions, probably incorrect but right for us
-	object = version + "/" + vars["artifact"] + "-" + value + "." + ext
-
+	// So just fetch that object
+	object = version + "/" + vars["artifact"] + "-" + value + suffix
 	url = "http://" + vars["host"] + "/" + "repository/" + vars["repo"] + "/" + group + "/" + vars["artifact"] + "/" + object
 	resp, _ = fetchobject(url)
 	defer resp.Body.Close()
@@ -91,5 +134,5 @@ func Fetch(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Length", strconv.Itoa(binary.Size(body)))
 
 	r := render.New()
-	r.Data(w, http.StatusOK, body)
+	r.Data(w, resp.StatusCode, body)
 }
