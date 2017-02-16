@@ -7,7 +7,7 @@ Usage is as follows:
 * Execute the n3l binary on a host that is both accessible by clients and able to access the nexus3 repository
 * On the client, query the n3l proxy with the following form:
 
-`http http://n3lproxyserver:3001/fetch/{host}/{repo}/{group}/{artifact}/{version}/{extension}`
+`http http://n3lproxyserver:3001/fetch/{host}/{repo}/{group}/{artifact}/{version}/{extension}/{classifier}`
 
 where:
 
@@ -17,3 +17,4 @@ where:
 * `{artifact}` is the maven artifact name
 * `{version}` is either a literal version string, or "latest"
 * `{extension}` is the file suffix, such as `war`, `jar`, `pom`
+* `{classifier}` is the maven artifact classifier
